@@ -60,7 +60,7 @@ REST API для регистрации и модерации горных пер
 ## Установка и запуск (локально)
 
 ### 1. Клонирование репозитория
-git clone https://github.com/horizonborder1-design/fstr_sprint2.git
+git clone https://github.com/horizonborder1-design/fstr_sprint2-3.git
 cd fstr_sprint2
 
 ### 2. Создание виртуального окружения
