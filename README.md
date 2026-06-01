@@ -33,7 +33,7 @@ REST API для регистрации и модерации горных пер
 |-------|----------|--------|
 | GET /submitData/{id} | Получение полной информации о перевале по ID | Готово |
 | PATCH /submitData/{id} | Редактирование перевала (только если status="new") | Готово |
-| GET /submitData/?user__email=<email> | Список всех перевалов пользователя | Готово |
+| GET /submitData/?user__email | Список всех перевалов пользователя | Готово |
 
 ### Бизнес-логика
 - При создании перевала автоматически устанавливается status="new"
@@ -61,7 +61,7 @@ REST API для регистрации и модерации горных пер
 
 ### 1. Клонирование репозитория
 git clone https://github.com/horizonborder1-design/fstr_sprint2-3.git
-cd fstr_sprint2
+cd fstr_sprint2-3
 
 ### 2. Создание виртуального окружения
 # Windows
@@ -78,11 +78,15 @@ pip install -r requirements.txt
 ### 4. Настройка переменных окружения
 Создай файл .env в корне проекта на основе .env.example:
 
-# === PostgreSQL настройки ===
+# PostgreSQL настройки
 FSTR_DB_HOST=localhost
+
 FSTR_DB_PORT=5432
+
 FSTR_DB_LOGIN=postgres
+
 FSTR_DB_PASS=your_secure_password
+
 FSTR_DB_NAME=fstr_db
 
 ### 5. Создание базы данных
@@ -106,7 +110,8 @@ uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 POST /submitData
 Content-Type: application/json
 
-Тело запроса (JSON):
+**Тело запроса:**
+```json
 {
   "beauty_title": "пер. ",
   "title": "Пхия",
@@ -133,21 +138,23 @@ Content-Type: application/json
   },
   "images": []
 }
-
+```
 Ответ (успех):
+```
 {
   "status": 200,
   "message": null,
   "id": 42
 }
-
+```
 Ответ (ошибка):
+```
 {
   "status": 400,
   "message": "Bad Request: missing required fields",
   "id": null
 }
-
+```
 ---
 
 ### GET /submitData/{id} — Получить перевал по ID
@@ -156,6 +163,7 @@ Content-Type: application/json
 GET /submitData/42
 
 Ответ:
+```
 {
   "id": 42,
   "title": "Пхия",
@@ -169,7 +177,7 @@ GET /submitData/42
   },
   "images": []
 }
-
+```
 ---
 
 ### PATCH /submitData/{id} — Редактировать перевал
@@ -177,32 +185,34 @@ GET /submitData/42
 Пример запроса:
 PATCH /submitData/42
 Content-Type: application/json
-
+```
 {
   "title": "Новое название",
   "height": 1250,
   "user": { ... }
 }
-
+```
 Ответ (успех):
+```
 {
   "state": 1,
   "message": "Запись успешно обновлена"
 }
-
+```
 Ответ (ошибка — статус не new):
+```
 {
   "state": 0,
   "message": "Редактирование невозможно. Текущий статус: accepted"
 }
-
+```
 ---
 
 ### GET /submitData/?user__email=<email> — Список перевалов пользователя
 
 Пример запроса:
 GET /submitData/?user__email=user@email.tld
-
+```
 Ответ:
 [
   {
@@ -218,7 +228,7 @@ GET /submitData/?user__email=user@email.tld
     ...
   }
 ]
-
+```
 ---
 
 ## Тестирование
@@ -241,45 +251,65 @@ curl "http://127.0.0.1:8000/submitData/?user__email=user@email.tld"
 
 ## Структура базы данных
 
-users
-├── id (PK)
-├── email (unique)
-├── fam, name, otc, phone
-└── created_at
+Таблица users
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `id` | SERIAL PRIMARY KEY | Уникальный идентификатор |
+| `email` | VARCHAR(255) UNIQUE | Email пользователя (уникальный) |
+| `fam` | VARCHAR(255) | Фамилия |
+| `name` | VARCHAR(255) | Имя |
+| `otc` | VARCHAR(255) | Отчество |
+| `phone` | VARCHAR(50) | Телефон |
+| `created_at` | TIMESTAMP | Дата регистрации |
 
-passes
-├── id (PK)
-├── title, beauty_title, other_titles, connect
-├── latitude, longitude, height
-├── level_winter/spring/summer/autumn
-├── status (new/pending/accepted/rejected) ← ключевое поле
-├── user_id (FK → users)
-└── created_at, updated_at
+Таблица passes
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `id` | SERIAL PRIMARY KEY | Уникальный идентификатор |
+| `title` | VARCHAR(255) NOT NULL | Название перевала |
+| `beauty_title` | VARCHAR(255) | Красивое название |
+| `other_titles` | TEXT | Другие названия |
+| `connect` | TEXT | Что соединяет |
+| `latitude` | DECIMAL(9,6) | Широта |
+| `longitude` | DECIMAL(9,6) | Долгота |
+| `height` | INTEGER | Высота (м) |
+| `level_winter` | VARCHAR(10) | Категория зимой |
+| `level_spring` | VARCHAR(10) | Категория весной |
+| `level_summer` | VARCHAR(10) | Категория летом |
+| `level_autumn` | VARCHAR(10) | Категория осенью |
+| `status` | VARCHAR(20) | **Статус модерации** (new/pending/accepted/rejected) |
+| `user_id` | INTEGER (FK) | Ссылка на пользователя |
+| `created_at` | TIMESTAMP | Дата добавления |
+| `updated_at` | TIMESTAMP | Дата обновления |
 
-pass_images
-├── id (PK)
-── pass_id (FK → passes, CASCADE)
-├── data (BYTEA), title
-└── added_at
+Таблица pass_images
+| Поле | Тип | Описание |
+|------|-----|----------|
+| `id` | SERIAL PRIMARY KEY | Уникальный идентификатор |
+| `pass_id` | INTEGER (FK) | Ссылка на перевал (CASCADE) |
+| `data` | BYTEA | Изображение (binary) |
+| `title` | VARCHAR(255) | Название фото |
+| `added_at` | TIMESTAMP | Дата загрузки |
 
 ---
 
 ## Структура проекта
 
-fstr_sprint2/
-├── app/
-│   ├── __init__.py
-│   ├── main.py          # FastAPI приложение, эндпоинты
-│   ├── database.py      # Подключение к БД
-│   ├── models.py        # SQLAlchemy модели
-│   ├── schemas.py       # Pydantic схемы валидации
-│   ├── crud.py          # Класс DatabaseManager (бизнес-логика)
-│   └── config.py        # Настройки из переменных окружения
-├── .env.example         # Шаблон переменных окружения
-├── database_schema.sql  # SQL-скрипт создания таблиц
-├── requirements.txt     # Зависимости Python
-├── README.md            # Файл описание
-└── .gitignore           # Исключения для Git
+| Файл/Папка | Назначение |
+|------------|------------|
+| `app/` | Основное приложение |
+| `app/__init__.py` | Инициализация пакета |
+| `app/main.py` | FastAPI приложение и эндпоинты |
+| `app/config.py` | Настройки из переменных окружения |
+| `app/database.py` | Подключение к PostgreSQL |
+| `app/models.py` | SQLAlchemy модели (таблицы БД) |
+| `app/schemas.py` | Pydantic схемы (валидация данных) |
+| `app/crud.py` | DatabaseManager (бизнес-логика) |
+| `.env.example` | Шаблон переменных окружения |
+| `database_schema.sql` | SQL-скрипт создания таблиц |
+| `requirements.txt` | Python-зависимости |
+| `README.md` | Документация проекта |
+| `.gitignore` | Исключения для Git |
 
 ---
 
